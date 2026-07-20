@@ -20,6 +20,7 @@ DEFAULT_ANNOTATIONS = REPO_ROOT / "data" / "processed" / "annotations.csv"
 DEFAULT_MODEL_DIR = REPO_ROOT / "models"
 DEFAULT_MODEL_PATH = DEFAULT_MODEL_DIR / "genre_classifier.keras"
 DEFAULT_IMAGE_SIZE = 224
+DEFAULT_REPORT_DIR = REPO_ROOT / "reports"
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,6 +43,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", default=16, type=int)
     parser.add_argument("--image-size", default=DEFAULT_IMAGE_SIZE, type=int)
     parser.add_argument("--validation-split", default=0.2, type=float)
+    parser.add_argument(
+        "--report-dir",
+        default=DEFAULT_REPORT_DIR,
+        type=Path,
+        help="Directory where training metrics and plots will be saved.",
+    )
     parser.add_argument(
         "--fine-tune",
         action="store_true",
@@ -173,6 +180,85 @@ def fine_tune_model(model: tf.keras.Model) -> None:
     )
 
 
+def merge_histories(histories: list[tf.keras.callbacks.History]) -> pd.DataFrame:
+    rows: list[dict[str, float | int | str]] = []
+    global_epoch = 1
+
+    for phase_index, history in enumerate(histories, start=1):
+        phase_name = "fine_tune" if phase_index > 1 else "transfer_learning"
+        epoch_count = len(next(iter(history.history.values()), []))
+        for epoch_index in range(epoch_count):
+            row: dict[str, float | int | str] = {
+                "epoch": global_epoch,
+                "phase": phase_name,
+            }
+            for metric_name, values in history.history.items():
+                row[metric_name] = float(values[epoch_index])
+            rows.append(row)
+            global_epoch += 1
+
+    return pd.DataFrame(rows)
+
+
+def save_training_report(history: pd.DataFrame, report_dir: Path) -> None:
+    report_dir = resolve_path(report_dir)
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = report_dir / "training_history.csv"
+    json_path = report_dir / "training_summary.json"
+    plot_path = report_dir / "training_curves.png"
+
+    history.to_csv(csv_path, index=False)
+
+    final_metrics = history.iloc[-1].to_dict()
+    with json_path.open("w", encoding="utf-8") as json_file:
+        json.dump(final_metrics, json_file, indent=2)
+        json_file.write("\n")
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    metric_groups = [
+        ("loss", "val_loss", "Binary crossentropy"),
+        ("binary_accuracy", "val_binary_accuracy", "Binary accuracy"),
+        ("auc", "val_auc", "Multi-label AUC"),
+    ]
+    available_groups = [
+        group
+        for group in metric_groups
+        if group[0] in history.columns and group[1] in history.columns
+    ]
+    if not available_groups:
+        print("No train/validation metric pairs available for plotting.")
+        return
+
+    fig, axes = plt.subplots(
+        1,
+        len(available_groups),
+        figsize=(5 * len(available_groups), 4),
+        constrained_layout=True,
+    )
+    if len(available_groups) == 1:
+        axes = [axes]
+
+    for axis, (train_metric, val_metric, title) in zip(axes, available_groups):
+        axis.plot(history["epoch"], history[train_metric], marker="o", label="train")
+        axis.plot(history["epoch"], history[val_metric], marker="o", label="validation")
+        axis.set_title(title)
+        axis.set_xlabel("Epoch")
+        axis.grid(alpha=0.25)
+        axis.legend()
+
+    fig.savefig(plot_path, dpi=160)
+    plt.close(fig)
+
+    print(f"Saved training history to {csv_path}")
+    print(f"Saved training summary to {json_path}")
+    print(f"Saved training curves to {plot_path}")
+
+
 def train(args: argparse.Namespace) -> Path:
     annotations = read_annotations(args.annotations)
     train_rows, validation_rows = split_annotations(
@@ -202,21 +288,29 @@ def train(args: argparse.Namespace) -> Path:
         )
     ]
 
-    model.fit(
-        train_dataset,
-        validation_data=validation_dataset,
-        epochs=args.epochs,
-        callbacks=callbacks,
+    histories = []
+    histories.append(
+        model.fit(
+            train_dataset,
+            validation_data=validation_dataset,
+            epochs=args.epochs,
+            callbacks=callbacks,
+        )
     )
 
     if args.fine_tune:
         fine_tune_model(model)
-        model.fit(
-            train_dataset,
-            validation_data=validation_dataset,
-            epochs=max(2, args.epochs // 2),
-            callbacks=callbacks,
+        histories.append(
+            model.fit(
+                train_dataset,
+                validation_data=validation_dataset,
+                epochs=max(2, args.epochs // 2),
+                callbacks=callbacks,
+            )
         )
+
+    history = merge_histories(histories)
+    save_training_report(history, args.report_dir)
 
     model_path = resolve_path(args.model_path)
     model_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,14 +1,20 @@
+import json
+from pathlib import Path
+
 import altair as alt
 import pandas as pd
 import streamlit as st
 from PIL import Image
 
 from src.gradcam import gradcam_overlay
-from src.mood import estimate_mood, extract_features
+from src.mood import analyze_mood, extract_features
 from src.predict import analyze_genres
 
 
 DETECTION_THRESHOLD = 0.5
+REPORTS_DIR = Path("reports")
+TRAINING_CURVES_PATH = REPORTS_DIR / "training_curves.png"
+TRAINING_SUMMARY_PATH = REPORTS_DIR / "training_summary.json"
 
 CUSTOM_CSS = """
 <style>
@@ -104,7 +110,7 @@ with poster_col:
 with result_col:
     with st.spinner("Analyse de l'affiche en cours..."):
         analysis = analyze_genres(image)
-        mood = estimate_mood(image)
+        mood = analyze_mood(image)
         features = extract_features(image)
 
     if analysis.load_error:
@@ -185,6 +191,34 @@ with result_col:
             st.progress(mood.confidence, text=f"Confiance : {mood.confidence:.0%}")
             st.caption(mood.explanation)
 
+            mood_scores = sorted(
+                mood.scores.items(), key=lambda item: item[1], reverse=True
+            )
+            mood_df = pd.DataFrame(mood_scores, columns=["ambiance", "score"])
+            mood_chart = (
+                alt.Chart(mood_df)
+                .mark_bar(cornerRadius=4)
+                .encode(
+                    x=alt.X(
+                        "score:Q",
+                        axis=alt.Axis(format="%", title=None),
+                        scale=alt.Scale(domain=[0, 1]),
+                    ),
+                    y=alt.Y("ambiance:N", sort="-x", title=None),
+                    color=alt.condition(
+                        alt.datum.ambiance == mood.label,
+                        alt.value("#f5b301"),
+                        alt.value("#3d4a5c"),
+                    ),
+                    tooltip=[
+                        alt.Tooltip("ambiance:N", title="Ambiance"),
+                        alt.Tooltip("score:Q", format=".0%", title="Score"),
+                    ],
+                )
+                .properties(height=190)
+            )
+            st.altair_chart(mood_chart, use_container_width=True)
+
     with signals_col:
         with st.container(border=True):
             st.markdown("#### Signaux visuels")
@@ -251,3 +285,21 @@ if analysis.used_trained_model:
                 caption=f"Attention du modele - {selected_genre}",
                 use_container_width=True,
             )
+
+if TRAINING_CURVES_PATH.exists():
+    with st.expander("Metriques d'entrainement du modele"):
+        if TRAINING_SUMMARY_PATH.exists():
+            with TRAINING_SUMMARY_PATH.open(encoding="utf-8") as summary_file:
+                summary = json.load(summary_file)
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("Validation loss", f"{summary['val_loss']:.3f}")
+            metric_cols[1].metric(
+                "Validation accuracy", f"{summary['val_binary_accuracy']:.1%}"
+            )
+            metric_cols[2].metric("Validation AUC", f"{summary['val_auc']:.1%}")
+
+        st.image(
+            str(TRAINING_CURVES_PATH),
+            caption="Evolution loss / accuracy / AUC pendant l'entrainement",
+            use_container_width=True,
+        )

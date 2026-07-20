@@ -18,6 +18,7 @@ class MoodPrediction:
     label: str
     confidence: float
     explanation: str
+    scores: dict[str, float]
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,18 @@ def _clamp_confidence(value: float) -> float:
 
 def _score_to_confidence(score: float) -> float:
     return _clamp_confidence(0.5 + score * 0.42)
+
+
+def _normalize_scores(scores: dict[str, float]) -> dict[str, float]:
+    positive_scores = {
+        label: _clamp_probability(score)
+        for label, score in scores.items()
+    }
+    return {label: round(value, 4) for label, value in positive_scores.items()}
+
+
+def _clamp_probability(value: float) -> float:
+    return max(0.0, min(1.0, value))
 
 
 def extract_features(image: Image.Image) -> MoodFeatures:
@@ -148,10 +161,12 @@ def _format_explanation(label: str, features: MoodFeatures) -> str:
     )
 
 
-def estimate_mood(image: Image.Image) -> MoodPrediction:
-    """Estimate poster mood from color, brightness, saturation and contrast."""
+def analyze_mood(image: Image.Image) -> MoodPrediction:
+    """Estimate poster mood and return one score per supported mood."""
     features = extract_features(image)
-    scores = _score_moods(features)
+    scores = _normalize_scores(_score_moods(features))
+    strongest_signal = max(scores.values())
+    scores["Neutre"] = round(_clamp_probability((0.22 - strongest_signal) / 0.22), 4)
     label, score = max(scores.items(), key=lambda item: item[1])
 
     if score >= 0.22:
@@ -159,10 +174,17 @@ def estimate_mood(image: Image.Image) -> MoodPrediction:
             label=label,
             confidence=_score_to_confidence(score),
             explanation=_format_explanation(label, features),
+            scores=scores,
         )
 
     return MoodPrediction(
         label="Neutre",
         confidence=0.5,
         explanation=_format_explanation("Neutre", features),
+        scores=scores,
     )
+
+
+def estimate_mood(image: Image.Image) -> MoodPrediction:
+    """Backward-compatible alias for the complete mood analysis."""
+    return analyze_mood(image)
