@@ -7,7 +7,7 @@ from src.predict import IMAGE_SIZE, load_genres, load_trained_model
 
 
 HEATMAP_COLORMAP = "inferno"
-OVERLAY_MAX_ALPHA = 0.7
+OVERLAY_MAX_ALPHA = 0.8
 HEATMAP_GAMMA = 1.5
 
 
@@ -60,7 +60,11 @@ def overlay_heatmap(
     blur_radius = max(2, int(min(poster.size) * 0.02))
     heat_image = heat_image.filter(ImageFilter.GaussianBlur(blur_radius))
 
-    heat_values = (np.asarray(heat_image, dtype=np.float32) / 255.0) ** HEATMAP_GAMMA
+    heat_values = np.asarray(heat_image, dtype=np.float32) / 255.0
+    max_heat = float(heat_values.max())
+    if max_heat > 0:
+        heat_values /= max_heat
+    heat_values = heat_values**HEATMAP_GAMMA
     colored = colormaps[HEATMAP_COLORMAP](heat_values)[..., :3]
     poster_values = np.asarray(poster, dtype=np.float32) / 255.0
     alpha = (heat_values * max_alpha)[..., np.newaxis]
