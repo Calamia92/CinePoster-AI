@@ -100,7 +100,14 @@ if uploaded_file is None:
         )
     st.stop()
 
-image = Image.open(uploaded_file).convert("RGB")
+try:
+    image = Image.open(uploaded_file).convert("RGB")
+except Exception as error:
+    st.error(
+        "Impossible de lire cette affiche. Importez une image valide au format "
+        f"JPG, PNG ou WebP. Detail : {error}"
+    )
+    st.stop()
 
 poster_col, result_col = st.columns([1, 1.7], gap="large")
 

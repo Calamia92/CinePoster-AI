@@ -27,6 +27,12 @@ conserver une demo fonctionnelle.
 
 ## Deploiement Streamlit Community Cloud
 
+Demo live :
+
+```text
+https://cineposter-ai-ngogbbyfjyp9mgu7uo95g8.streamlit.app/
+```
+
 Le projet est pret pour Streamlit Community Cloud. Depuis `share.streamlit.io`,
 creer une nouvelle app avec ces parametres :
 
@@ -187,6 +193,22 @@ Les tests couvrent :
 - les classes d'ambiance ;
 - des affiches synthetiques pour les heuristiques couleur ;
 - les cas principaux Grad-CAM.
+
+## Tests adversariaux
+
+Des tests adversariaux ont ete prevus pour verifier que la demo reste robuste
+face a des entrees difficiles :
+
+- modele absent ou impossible a charger : l'application garde une prediction de
+  secours au lieu de planter ;
+- image sombre avec zone claire localisee : l'ambiance reste coherente et ne
+  bascule pas uniquement a cause d'un reflet ;
+- affiche tres contrastee et saturee : l'ambiance epique est privilegiee ;
+- heatmap Grad-CAM plate : l'application retourne une absence de visualisation
+  exploitable au lieu d'afficher une carte trompeuse ;
+- genre inconnu demande a Grad-CAM : une erreur explicite est levee ;
+- fichier image invalide dans la WebApp : l'utilisateur recoit un message
+  d'erreur lisible.
 
 ## Limites
 
