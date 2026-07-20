@@ -1,10 +1,10 @@
 {
-  "epoch": 3,
+  "epoch": 5,
   "phase": "transfer_learning",
-  "auc": 0.7749406099319458,
-  "binary_accuracy": 0.8271892666816711,
-  "loss": 0.38894158601760864,
-  "val_auc": 0.7679188847541809,
-  "val_binary_accuracy": 0.8248869776725769,
-  "val_loss": 0.39625436067581177
+  "auc": 0.8155,
+  "binary_accuracy": 0.7495,
+  "loss": 0.7812,
+  "val_auc": 0.7744,
+  "val_binary_accuracy": 0.7037,
+  "val_loss": 0.896
 }
