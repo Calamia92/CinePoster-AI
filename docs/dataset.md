@@ -7,12 +7,49 @@ Issue #2 prepares the poster dataset for multilabel genre training.
 Use a poster dataset that provides one image per movie and one or more genres per
 movie. Good sources for this project are:
 
+- Kaggle `raman77768/movie-classifier`, published as Movie Posters with
+  multi-label genres and a CC0 public domain license.
 - TMDB poster exports combined with TMDB genre metadata.
-- Kaggle movie poster datasets when redistribution is allowed by the dataset
-  license.
 
 Do not commit downloaded poster images to Git. Keep raw files under
 `data/raw/`, which is ignored by `.gitignore`.
+
+## Kaggle workflow
+
+Authenticate Kaggle locally first:
+
+```bash
+kaggle auth login
+```
+
+Or set the token for the current shell:
+
+```bash
+$env:KAGGLE_API_TOKEN = "your-token"
+```
+
+Then download and unzip the selected dataset:
+
+```bash
+kaggle datasets download -d raman77768/movie-classifier -p data/raw/kaggle/movie-classifier --unzip
+```
+
+Convert the Kaggle files to the project raw format:
+
+```bash
+python scripts/convert_kaggle_movie_posters.py --dataset-dir data/raw/kaggle/movie-classifier
+```
+
+Then generate the multi-label annotations:
+
+```bash
+python scripts/prepare_dataset.py --input data/raw/posters.csv --validate-images
+```
+
+The Kaggle conversion keeps only the genres supported by the MVP:
+
+`Action`, `Science-fiction`, `Thriller`, `Drame`, `Comedie`, `Romance`,
+`Horreur`, `Aventure`.
 
 ## Source CSV format
 

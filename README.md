@@ -25,6 +25,14 @@ Le format attendu pour l'entrainement multi-label est documente dans
 python scripts/prepare_dataset.py --input data/raw/posters.csv
 ```
 
+Pour un dataset Kaggle reel:
+
+```bash
+kaggle datasets download -d raman77768/movie-classifier -p data/raw/kaggle/movie-classifier --unzip
+python scripts/convert_kaggle_movie_posters.py --dataset-dir data/raw/kaggle/movie-classifier
+python scripts/prepare_dataset.py --input data/raw/posters.csv --validate-images
+```
+
 ## Structure
 
 ```text
