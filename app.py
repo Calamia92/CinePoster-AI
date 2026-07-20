@@ -55,5 +55,5 @@ with result_col:
 
 st.divider()
 st.caption(
-    "MVP: les predictions sont des placeholders. Remplacer src/predict.py par le modele entraine."
+    "MVP: l'app utilise models/genre_classifier.keras si le modele a ete entraine."
 )
