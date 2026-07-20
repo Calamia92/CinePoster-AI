@@ -5,7 +5,7 @@ import streamlit as st
 from PIL import Image
 
 from src.mood import estimate_mood
-from src.predict import predict_genres
+from src.predict import analyze_genres
 
 
 st.set_page_config(
@@ -34,14 +34,24 @@ with poster_col:
     st.image(image, caption=uploaded_file.name, use_container_width=True)
 
 with result_col:
-    genre_scores = predict_genres(image)
+    analysis = analyze_genres(image)
     mood = estimate_mood(image)
 
     st.subheader("Genres probables")
+    if analysis.load_error:
+        st.warning(
+            "Le modele entraine n'a pas pu etre charge, l'app affiche les "
+            f"predictions placeholder du MVP. Detail: {analysis.load_error}"
+        )
+    elif analysis.used_trained_model:
+        st.caption("Predictions du modele entraine (models/genre_classifier.keras).")
+    else:
+        st.caption("Aucun modele entraine trouve, predictions placeholder du MVP.")
+
     genre_df = pd.DataFrame(
         {
-            "genre": list(genre_scores.keys()),
-            "probabilite": list(genre_scores.values()),
+            "genre": list(analysis.scores.keys()),
+            "probabilite": list(analysis.scores.values()),
         }
     ).sort_values("probabilite", ascending=False)
 
