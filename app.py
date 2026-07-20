@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
+from src.gradcam import gradcam_overlay
 from src.mood import estimate_mood, extract_features
 from src.predict import analyze_genres
 
@@ -212,3 +213,32 @@ with result_col:
                 .properties(height=170)
             )
             st.altair_chart(features_chart, use_container_width=True)
+
+if analysis.used_trained_model:
+    with st.container(border=True):
+        st.markdown("#### Zones d'attention (Grad-CAM)")
+        st.caption(
+            "L'affiche passe en noir et blanc ; les zones qui ont le plus "
+            "contribué au genre sélectionné retrouvent leurs couleurs."
+        )
+        selected_genre = st.selectbox(
+            "Genre à expliquer",
+            [genre for genre, _ in ranked_genres],
+        )
+        with st.spinner("Calcul de la carte d'attention..."):
+            overlay = gradcam_overlay(image, selected_genre)
+        if overlay is None:
+            st.info(
+                "Le modèle n'a identifié aucune zone qui augmente le score de "
+                "ce genre sur cette affiche. Essayez un autre genre."
+            )
+        else:
+            original_col, overlay_col = st.columns(2, gap="medium")
+            original_col.image(
+                image, caption="Affiche originale", use_container_width=True
+            )
+            overlay_col.image(
+                overlay,
+                caption=f"Attention du modèle — {selected_genre}",
+                use_container_width=True,
+            )
