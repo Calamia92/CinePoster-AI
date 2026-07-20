@@ -1,4 +1,6 @@
 streamlit>=1.36
+altair>=5
+numpy>=1.26
 pandas>=2.2
 pillow>=10.3
 tensorflow>=2.16
