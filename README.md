@@ -27,6 +27,12 @@ conserver une demo fonctionnelle.
 
 ## Deploiement Streamlit Community Cloud
 
+Demo live :
+
+```text
+https://cineposter-ai-ngogbbyfjyp9mgu7uo95g8.streamlit.app/
+```
+
 Le projet est pret pour Streamlit Community Cloud. Depuis `share.streamlit.io`,
 creer une nouvelle app avec ces parametres :
 
