@@ -59,9 +59,9 @@ div[data-testid="stImage"] img, div[data-testid="stImageContainer"] img {
 </style>
 """
 
+
 st.set_page_config(
     page_title="CinePoster Insight",
-    page_icon="🎬",
     layout="wide",
 )
 
@@ -71,8 +71,8 @@ st.markdown(
     <div class="title-block">
         <p class="eyebrow">Analyse d'affiches de film</p>
         <h1 class="app-title">CinePoster <span>Insight</span></h1>
-        <p class="app-subtitle">Genres probables et ambiance visuelle d'une affiche,
-        en un coup d'œil.</p>
+        <p class="app-subtitle">Genres probables, ambiance visuelle et zones
+        d'attention du modele en un coup d'oeil.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -81,16 +81,16 @@ st.markdown(
 uploaded_file = st.file_uploader(
     "Importer une affiche",
     type=["jpg", "jpeg", "png", "webp"],
-    help="Formats acceptés : JPG, JPEG, PNG, WebP.",
+    help="Formats acceptes : JPG, JPEG, PNG, WebP.",
     label_visibility="collapsed",
 )
 
 if uploaded_file is None:
     with st.container(border=True):
-        st.markdown("#### Aucune affiche importée")
+        st.markdown("#### Aucune affiche importee")
         st.caption(
-            "Glissez une affiche ci-dessus (JPG, PNG ou WebP) pour lancer "
-            "l'analyse des genres et de l'ambiance."
+            "Glissez une affiche ci-dessus pour lancer l'analyse des genres, "
+            "de l'ambiance et des zones d'attention."
         )
     st.stop()
 
@@ -109,14 +109,18 @@ with result_col:
 
     if analysis.load_error:
         st.warning(
-            "Le modèle entraîné n'a pas pu être chargé, l'app affiche des "
-            f"prédictions de secours. Détail : {analysis.load_error}"
+            "Le modele entraine n'a pas pu etre charge, l'app affiche des "
+            f"predictions de secours. Detail : {analysis.load_error}"
         )
 
     ranked_genres = sorted(
         analysis.scores.items(), key=lambda item: item[1], reverse=True
     )
-    detected = [g for g, p in ranked_genres if p >= DETECTION_THRESHOLD]
+    detected = [
+        genre
+        for genre, probability in ranked_genres
+        if probability >= DETECTION_THRESHOLD
+    ]
 
     with st.container(border=True):
         st.markdown("#### Genres probables")
@@ -128,14 +132,14 @@ with result_col:
             )
         else:
             st.markdown(
-                f"Aucun genre ne dépasse le seuil de détection "
-                f"({DETECTION_THRESHOLD:.0%}) — tendance **{ranked_genres[0][0]}**."
+                f"Aucun genre ne depasse le seuil de detection "
+                f"({DETECTION_THRESHOLD:.0%}) - tendance **{ranked_genres[0][0]}**."
             )
 
         chips = "".join(
             '<span class="genre-chip'
             + (" detected" if probability >= DETECTION_THRESHOLD else "")
-            + f'">{genre} · {probability:.0%}</span>'
+            + f'">{genre} - {probability:.0%}</span>'
             for genre, probability in ranked_genres
         )
         st.markdown(chips, unsafe_allow_html=True)
@@ -158,7 +162,7 @@ with result_col:
                 ),
                 tooltip=[
                     alt.Tooltip("genre:N", title="Genre"),
-                    alt.Tooltip("probabilite:Q", format=".0%", title="Probabilité"),
+                    alt.Tooltip("probabilite:Q", format=".0%", title="Probabilite"),
                 ],
             )
             .properties(height=240)
@@ -166,15 +170,15 @@ with result_col:
         st.altair_chart(genre_chart, use_container_width=True)
 
         if analysis.used_trained_model:
-            st.caption("Source : modèle entraîné (models/genre_classifier.keras).")
+            st.caption("Source : modele entraine (models/genre_classifier.keras).")
         else:
-            st.caption("Source : prédictions de démonstration, aucun modèle entraîné.")
+            st.caption("Source : predictions de demonstration, aucun modele entraine.")
 
     mood_col, signals_col = st.columns(2, gap="medium")
 
     with mood_col:
         with st.container(border=True):
-            st.markdown("#### Ambiance estimée")
+            st.markdown("#### Ambiance estimee")
             st.markdown(
                 f'<p class="mood-label">{mood.label}</p>', unsafe_allow_html=True
             )
@@ -186,7 +190,7 @@ with result_col:
             st.markdown("#### Signaux visuels")
             features_df = pd.DataFrame(
                 {
-                    "signal": ["Luminosité", "Saturation", "Contraste", "Zones sombres"],
+                    "signal": ["Luminosite", "Saturation", "Contraste", "Zones sombres"],
                     "valeur": [
                         features.brightness,
                         features.saturation,
@@ -219,17 +223,22 @@ if analysis.used_trained_model:
         st.markdown("#### Zones d'attention (Grad-CAM)")
         st.caption(
             "L'affiche passe en noir et blanc ; les zones qui ont le plus "
-            "contribué au genre sélectionné retrouvent leurs couleurs."
+            "contribue au genre selectionne retrouvent leurs couleurs."
         )
         selected_genre = st.selectbox(
-            "Genre à expliquer",
+            "Genre a expliquer",
             [genre for genre, _ in ranked_genres],
         )
         with st.spinner("Calcul de la carte d'attention..."):
-            overlay = gradcam_overlay(image, selected_genre)
+            try:
+                overlay = gradcam_overlay(image, selected_genre)
+            except Exception as error:
+                overlay = None
+                st.warning(f"Grad-CAM indisponible pour cette image : {error}")
+
         if overlay is None:
             st.info(
-                "Le modèle n'a identifié aucune zone qui augmente le score de "
+                "Le modele n'a identifie aucune zone qui augmente le score de "
                 "ce genre sur cette affiche. Essayez un autre genre."
             )
         else:
@@ -239,6 +248,6 @@ if analysis.used_trained_model:
             )
             overlay_col.image(
                 overlay,
-                caption=f"Attention du modèle — {selected_genre}",
+                caption=f"Attention du modele - {selected_genre}",
                 use_container_width=True,
             )
