@@ -2,7 +2,7 @@ import unittest
 
 from PIL import Image, ImageDraw
 
-from src.mood import MOOD_CLASSES, estimate_mood
+from src.mood import MOOD_CLASSES, analyze_mood, estimate_mood
 
 
 def make_split_poster(left_color, right_color, size=(96, 144)):
@@ -32,6 +32,14 @@ class MoodPredictionTests(unittest.TestCase):
         self.assertIn("Froid / science-fiction", MOOD_CLASSES)
         self.assertIn("Epique / intense", MOOD_CLASSES)
         self.assertIn("Neutre", MOOD_CLASSES)
+
+    def test_analyze_mood_returns_one_score_per_mood(self):
+        prediction = analyze_mood(Image.new("RGB", (64, 64), (65, 120, 220)))
+
+        self.assertEqual(set(prediction.scores), set(MOOD_CLASSES))
+        for score in prediction.scores.values():
+            self.assertGreaterEqual(score, 0.0)
+            self.assertLessEqual(score, 1.0)
 
     def test_dark_poster_returns_mysterious_mood(self):
         prediction = estimate_mood(Image.new("RGB", (64, 64), (18, 18, 20)))

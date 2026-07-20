@@ -100,6 +100,24 @@ models/genre_classifier.keras
 models/genres.json
 ```
 
+Le script sauvegarde aussi un rapport d'entrainement :
+
+```text
+reports/training_history.csv
+reports/training_summary.json
+reports/training_curves.png
+```
+
+Ces fichiers permettent d'illustrer l'evolution de la loss, de la binary
+accuracy et de l'AUC sur train/validation. Sur le prototype 3 epochs utilise
+pour la demo, les dernieres metriques sont environ :
+
+```text
+val_loss: 0.396
+val_binary_accuracy: 82.5 %
+val_auc: 76.8 %
+```
+
 Le modele actuellement partage est un prototype entraine rapidement pour la
 demonstration. Ses predictions sont utiles pour illustrer le pipeline, mais ne
 doivent pas etre presentees comme un systeme de production.
@@ -117,7 +135,8 @@ signaux visuels calcules sur l'affiche :
 - dominante chaude ou froide.
 
 Cette approche est volontairement explicable : l'app affiche les signaux qui ont
-oriente l'ambiance choisie.
+oriente l'ambiance choisie. L'application affiche aussi un score par ambiance,
+ce qui montre les alternatives possibles au lieu de masquer l'incertitude.
 
 ## Grad-CAM
 
@@ -133,7 +152,7 @@ expliquer approximativement les activations.
 
 ```bash
 python -m unittest discover -s tests
-python -m py_compile app.py src/predict.py src/mood.py src/gradcam.py
+python -m py_compile app.py src/predict.py src/mood.py src/gradcam.py scripts/train_genre_classifier.py
 ```
 
 Les tests couvrent :
