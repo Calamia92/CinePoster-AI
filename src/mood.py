@@ -4,11 +4,11 @@ from PIL import Image, ImageStat
 
 
 MOOD_CLASSES = (
-    "Sombre / mysterieux",
+    "Sombre / mystérieux",
     "Romantique / dramatique",
     "Familiale / humoristique",
     "Froid / science-fiction",
-    "Epique / intense",
+    "Épique / intense",
     "Neutre",
 )
 
@@ -42,7 +42,7 @@ def _score_to_confidence(score: float) -> float:
     return _clamp_confidence(0.5 + score * 0.42)
 
 
-def _extract_features(image: Image.Image) -> MoodFeatures:
+def extract_features(image: Image.Image) -> MoodFeatures:
     thumbnail = image.convert("RGB").resize((128, 128))
     grayscale = thumbnail.convert("L")
     grayscale_stat = ImageStat.Stat(grayscale)
@@ -82,7 +82,7 @@ def _positive(value: float) -> float:
 
 def _score_moods(features: MoodFeatures) -> dict[str, float]:
     return {
-        "Sombre / mysterieux": max(
+        "Sombre / mystérieux": max(
             _positive(0.42 - features.brightness) / 0.42,
             _positive(features.dark_ratio - 0.36) / 0.64,
         ),
@@ -102,7 +102,7 @@ def _score_moods(features: MoodFeatures) -> dict[str, float]:
             - _positive(features.contrast - 0.28) / 0.50 * 0.20
             - _positive(features.dark_ratio - 0.30) * 0.75
         ),
-        "Epique / intense": (
+        "Épique / intense": (
             _positive(features.contrast - 0.18) / 0.50 * 0.65
             + _positive(features.saturation - 0.18) / 0.82 * 0.25
             + min(features.dark_ratio, features.bright_ratio) * 0.70
@@ -113,44 +113,44 @@ def _score_moods(features: MoodFeatures) -> dict[str, float]:
 
 def _format_explanation(label: str, features: MoodFeatures) -> str:
     visual_cues = (
-        f"luminosite {features.brightness:.0%}, "
+        f"luminosité {features.brightness:.0%}, "
         f"saturation {features.saturation:.0%}, "
         f"contraste {features.contrast:.0%}, "
         f"zones sombres {features.dark_ratio:.0%}"
     )
 
     explanations = {
-        "Sombre / mysterieux": (
+        "Sombre / mystérieux": (
             "L'affiche contient une forte proportion de zones sombres et une "
-            f"luminosite reduite ({visual_cues})."
+            f"luminosité réduite ({visual_cues})."
         ),
         "Familiale / humoristique": (
-            "L'image est lumineuse, coloree et peu agressive, ce qui suggere "
+            "L'image est lumineuse, colorée et peu agressive, ce qui suggère "
             f"une ambiance accessible ({visual_cues})."
         ),
         "Froid / science-fiction": (
-            "Les tons froids dominent l'affiche, surtout le bleu, ce qui evoque "
+            "Les tons froids dominent l'affiche, surtout le bleu, ce qui évoque "
             f"une ambiance technologique ou distante ({visual_cues})."
         ),
         "Romantique / dramatique": (
-            "Les tons chauds dominent l'image, ce qui evoque une ambiance "
-            f"emotionnelle ou dramatique ({visual_cues})."
+            "Les tons chauds dominent l'image, ce qui évoque une ambiance "
+            f"émotionnelle ou dramatique ({visual_cues})."
         ),
-        "Epique / intense": (
-            "Le contraste visuel est marque, avec des couleurs assez presentes, "
-            f"ce qui donne une impression d'intensite ({visual_cues})."
+        "Épique / intense": (
+            "Le contraste visuel est marqué, avec des couleurs assez présentes, "
+            f"ce qui donne une impression d'intensité ({visual_cues})."
         ),
     }
     return explanations.get(
         label,
-        "Aucun signal de luminosite, contraste ou dominante couleur ne ressort "
+        "Aucun signal de luminosité, contraste ou dominante couleur ne ressort "
         f"nettement ({visual_cues}).",
     )
 
 
 def estimate_mood(image: Image.Image) -> MoodPrediction:
     """Estimate poster mood from color, brightness, saturation and contrast."""
-    features = _extract_features(image)
+    features = extract_features(image)
     scores = _score_moods(features)
     label, score = max(scores.items(), key=lambda item: item[1])
 
