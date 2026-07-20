@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter
 
 from src.predict import IMAGE_SIZE, load_genres, load_trained_model
 
 
-HEATMAP_COLORMAP = "inferno"
-OVERLAY_MAX_ALPHA = 0.8
-HEATMAP_GAMMA = 1.5
+HEATMAP_GAMMA = 1.2
+COLOR_BOOST = 1.5
 
 
 def compute_heatmap(image: Image.Image, genre_index: int) -> np.ndarray | None:
@@ -47,13 +46,14 @@ def compute_heatmap(image: Image.Image, genre_index: int) -> np.ndarray | None:
     return heatmap
 
 
-def overlay_heatmap(
-    image: Image.Image, heatmap: np.ndarray, max_alpha: float = OVERLAY_MAX_ALPHA
-) -> Image.Image:
-    """Paint the Grad-CAM map over the poster, opacity following the heat."""
-    from matplotlib import colormaps
-
+def overlay_heatmap(image: Image.Image, heatmap: np.ndarray) -> Image.Image:
+    """Show the poster in grayscale, restoring colors where the heat is high."""
     poster = image.convert("RGB")
+    grayscale = np.asarray(poster.convert("L").convert("RGB"), dtype=np.float32)
+    vivid = np.asarray(
+        ImageEnhance.Color(poster).enhance(COLOR_BOOST), dtype=np.float32
+    )
+
     heat_image = Image.fromarray(np.uint8(heatmap * 255)).resize(
         poster.size, Image.Resampling.BICUBIC
     )
@@ -64,17 +64,13 @@ def overlay_heatmap(
     max_heat = float(heat_values.max())
     if max_heat > 0:
         heat_values /= max_heat
-    heat_values = heat_values**HEATMAP_GAMMA
-    colored = colormaps[HEATMAP_COLORMAP](heat_values)[..., :3]
-    poster_values = np.asarray(poster, dtype=np.float32) / 255.0
-    alpha = (heat_values * max_alpha)[..., np.newaxis]
-    blended = poster_values * (1.0 - alpha) + colored * alpha
-    return Image.fromarray(np.uint8(np.clip(blended, 0.0, 1.0) * 255))
+    alpha = (heat_values**HEATMAP_GAMMA)[..., np.newaxis]
+
+    blended = grayscale * (1.0 - alpha) + vivid * alpha
+    return Image.fromarray(np.uint8(np.clip(blended, 0.0, 255.0)))
 
 
-def gradcam_overlay(
-    image: Image.Image, genre: str, max_alpha: float = OVERLAY_MAX_ALPHA
-) -> Image.Image | None:
+def gradcam_overlay(image: Image.Image, genre: str) -> Image.Image | None:
     """Return the poster with its attention zones for one genre.
 
     None means no trained model, or no zone raising this genre's score.
@@ -86,4 +82,4 @@ def gradcam_overlay(
     heatmap = compute_heatmap(image, genres.index(genre))
     if heatmap is None or float(heatmap.max()) <= 0.0:
         return None
-    return overlay_heatmap(image, heatmap, max_alpha)
+    return overlay_heatmap(image, heatmap)

@@ -218,8 +218,8 @@ if analysis.used_trained_model:
     with st.container(border=True):
         st.markdown("#### Zones d'attention (Grad-CAM)")
         st.caption(
-            "Les zones les plus claires sont celles qui ont le plus contribué "
-            "à la probabilité du genre sélectionné."
+            "L'affiche passe en noir et blanc ; les zones qui ont le plus "
+            "contribué au genre sélectionné retrouvent leurs couleurs."
         )
         selected_genre = st.selectbox(
             "Genre à expliquer",
