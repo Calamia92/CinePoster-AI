@@ -25,6 +25,31 @@ Si le modele `models/genre_classifier.keras` est present, l'application
 l'utilise automatiquement. Sinon, elle affiche des predictions placeholder pour
 conserver une demo fonctionnelle.
 
+## Deploiement Streamlit Community Cloud
+
+Le projet est pret pour Streamlit Community Cloud. Depuis `share.streamlit.io`,
+creer une nouvelle app avec ces parametres :
+
+```text
+Repository: Calamia92/CinePoster-AI
+Branch: add-mood-scores-training-reports
+Main file path: app.py
+Python version: 3.11 ou 3.12
+```
+
+Le repo contient les fichiers requis par Community Cloud :
+
+```text
+requirements.txt
+.streamlit/config.toml
+models/genre_classifier.keras
+models/genres.json
+reports/training_curves.png
+```
+
+Il n'y a pas de secret a renseigner pour lancer l'application. Si la branche est
+mergee dans `master`, choisir ensuite `master` comme branche de deploiement.
+
 ## Architecture
 
 ```text
