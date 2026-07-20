@@ -1,7 +1,8 @@
 import unittest
 from unittest import mock
 
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageDraw
 
 from src import gradcam
 from src.predict import DEFAULT_MODEL_PATH, GENRES
@@ -15,8 +16,12 @@ def tensorflow_available():
     return True
 
 
-def make_poster(size=(300, 450)):
-    return Image.new("RGB", size, (150, 60, 40))
+def make_poster():
+    image = Image.new("RGB", (300, 450), (12, 12, 18))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((60, 40, 240, 220), fill=(200, 170, 140))
+    draw.rectangle((0, 300, 300, 450), fill=(160, 30, 20))
+    return image
 
 
 class GradcamOverlayTests(unittest.TestCase):
@@ -28,12 +33,27 @@ class GradcamOverlayTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             gradcam.gradcam_overlay(make_poster(), "Documentaire")
 
+    def test_returns_none_for_flat_heatmap(self):
+        flat_map = np.zeros((7, 7), dtype="float32")
+        with mock.patch.object(gradcam, "compute_heatmap", return_value=flat_map):
+            self.assertIsNone(gradcam.gradcam_overlay(make_poster(), GENRES[0]))
+
     @unittest.skipUnless(
         DEFAULT_MODEL_PATH.exists() and tensorflow_available(),
         "requires the trained model and tensorflow",
     )
-    def test_overlay_matches_poster_size(self):
-        overlay = gradcam.gradcam_overlay(make_poster(), GENRES[0])
+    def test_overlay_for_some_genre_matches_poster_size(self):
+        poster = make_poster()
+        overlay = next(
+            (
+                result
+                for result in (
+                    gradcam.gradcam_overlay(poster, genre) for genre in GENRES
+                )
+                if result is not None
+            ),
+            None,
+        )
 
         self.assertIsNotNone(overlay)
         self.assertEqual(overlay.size, (300, 450))

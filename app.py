@@ -227,7 +227,12 @@ if analysis.used_trained_model:
         )
         with st.spinner("Calcul de la carte d'attention..."):
             overlay = gradcam_overlay(image, selected_genre)
-        if overlay is not None:
+        if overlay is None:
+            st.info(
+                "Le modèle n'a identifié aucune zone qui augmente le score de "
+                "ce genre sur cette affiche. Essayez un autre genre."
+            )
+        else:
             original_col, overlay_col = st.columns(2, gap="medium")
             original_col.image(
                 image, caption="Affiche originale", use_container_width=True
