@@ -26,17 +26,17 @@ def make_center_spot_poster(background, center, size=(96, 144)):
 
 class MoodPredictionTests(unittest.TestCase):
     def test_supported_classes_are_explicit(self):
-        self.assertIn("Sombre / mysterieux", MOOD_CLASSES)
+        self.assertIn("Sombre / mystérieux", MOOD_CLASSES)
         self.assertIn("Romantique / dramatique", MOOD_CLASSES)
         self.assertIn("Familiale / humoristique", MOOD_CLASSES)
         self.assertIn("Froid / science-fiction", MOOD_CLASSES)
-        self.assertIn("Epique / intense", MOOD_CLASSES)
+        self.assertIn("Épique / intense", MOOD_CLASSES)
         self.assertIn("Neutre", MOOD_CLASSES)
 
     def test_dark_poster_returns_mysterious_mood(self):
         prediction = estimate_mood(Image.new("RGB", (64, 64), (18, 18, 20)))
 
-        self.assertEqual(prediction.label, "Sombre / mysterieux")
+        self.assertEqual(prediction.label, "Sombre / mystérieux")
         self.assertGreaterEqual(prediction.confidence, 0.5)
         self.assertTrue(prediction.explanation)
 
@@ -73,21 +73,21 @@ class MoodPredictionTests(unittest.TestCase):
             make_center_spot_poster((10, 12, 18), (190, 180, 160))
         )
 
-        self.assertEqual(prediction.label, "Sombre / mysterieux")
+        self.assertEqual(prediction.label, "Sombre / mystérieux")
         self.assertGreater(prediction.confidence, 0.6)
         self.assertIn("zones sombres", prediction.explanation)
 
     def test_high_contrast_saturated_poster_returns_epic_mood(self):
         prediction = estimate_mood(make_split_poster((5, 5, 10), (245, 70, 25)))
 
-        self.assertEqual(prediction.label, "Epique / intense")
+        self.assertEqual(prediction.label, "Épique / intense")
         self.assertGreater(prediction.confidence, 0.6)
         self.assertIn("contraste", prediction.explanation)
 
     def test_explanation_contains_quantified_visual_cues(self):
         prediction = estimate_mood(Image.new("RGB", (64, 64), (65, 120, 220)))
 
-        self.assertIn("luminosite", prediction.explanation)
+        self.assertIn("luminosité", prediction.explanation)
         self.assertIn("saturation", prediction.explanation)
         self.assertIn("contraste", prediction.explanation)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -24,6 +25,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_PATH = REPO_ROOT / "models" / "genre_classifier.keras"
 DEFAULT_GENRES_PATH = REPO_ROOT / "models" / "genres.json"
 IMAGE_SIZE = (224, 224)
+
+
+@dataclass(frozen=True)
+class GenreAnalysis:
+    scores: dict[str, float]
+    used_trained_model: bool
+    load_error: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -63,12 +71,7 @@ def predict_with_trained_model(image: Image.Image) -> dict[str, float] | None:
     }
 
 
-def predict_genres(image: Image.Image) -> dict[str, float]:
-    """Return genre probabilities from the trained model, or MVP placeholders."""
-    trained_prediction = predict_with_trained_model(image)
-    if trained_prediction is not None:
-        return trained_prediction
-
+def placeholder_genres(image: Image.Image) -> dict[str, float]:
     width, height = image.size
     aspect_signal = min(width, height) / max(width, height)
 
@@ -82,3 +85,28 @@ def predict_genres(image: Image.Image) -> dict[str, float]:
         "Horreur": 0.18,
         "Aventure": 0.39,
     }
+
+
+def analyze_genres(image: Image.Image) -> GenreAnalysis:
+    """Predict genres with the trained model, or fall back to MVP placeholders."""
+    try:
+        scores = predict_with_trained_model(image)
+    except Exception as error:
+        return GenreAnalysis(
+            scores=placeholder_genres(image),
+            used_trained_model=False,
+            load_error=str(error),
+        )
+
+    if scores is None:
+        return GenreAnalysis(
+            scores=placeholder_genres(image),
+            used_trained_model=False,
+        )
+
+    return GenreAnalysis(scores=scores, used_trained_model=True)
+
+
+def predict_genres(image: Image.Image) -> dict[str, float]:
+    """Return genre probabilities from the trained model, or MVP placeholders."""
+    return analyze_genres(image).scores
